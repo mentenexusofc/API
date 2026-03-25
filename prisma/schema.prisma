@@ -1,0 +1,108 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Clinic {
+  id        String   @id @default(uuid())
+  name      String
+  phone     String?
+  email     String?
+  address   String?
+  logoUrl   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  doctors       Doctor[]
+  patients      Patient[]
+  appointments  Appointment[]
+
+  @@map("clinicas")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  clinicId  String
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CLINIC_ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+
+  @@map("usuarios")
+}
+
+enum Role {
+  SUPER_ADMIN
+  CLINIC_ADMIN
+  DOCTOR
+}
+
+model Doctor {
+  id               String   @id @default(uuid())
+  clinicId         String
+  name             String
+  specialty        String?
+  platformLogin    String?  // Username for external medical portal
+  platformPassword String?  // Password for external medical portal
+  phone            String?
+  active           Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  clinic           Clinic   @relation(fields: [clinicId], references: [id])
+  appointments     Appointment[]
+
+  @@map("profissionais")
+}
+
+model Patient {
+  id        String   @id @default(uuid())
+  clinicId  String
+  name      String
+  phone     String?
+  email     String?
+  birthDate DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  appointments Appointment[]
+
+  @@map("pacientes")
+}
+
+model Appointment {
+  id               String   @id @default(uuid())
+  clinicId         String
+  doctorId         String
+  patientId        String?
+  scheduledAt      DateTime
+  status           Status   @default(PENDING)
+  notes            String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  clinic           Clinic   @relation(fields: [clinicId], references: [id])
+  doctor           Doctor   @relation(fields: [doctorId], references: [id])
+  patient          Patient? @relation(fields: [patientId], references: [id])
+
+  @@map("agendamentos")
+}
+
+enum Status {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
